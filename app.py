@@ -1,0 +1,773 @@
+import sys
+import os
+try:
+    import cv2
+except Exception as e:
+    print(f"OpenCV Import Error: {e}")
+    print("OpenCV is required for this application. Please install it with: pip install opencv-python")
+    sys.exit(1)
+import streamlit as st
+import pandas as pd
+from vision_engine import VisionEngine
+from face_classifier import FaceClassifier
+import datetime
+import time
+import os
+import plotly.express as px
+import pyttsx3
+import threading
+
+# Advanced Features Imports
+try:
+    from advanced_detectors import MaskDetector, AttentionDetector
+    ADVANCED_DETECTION_AVAILABLE = True
+except ImportError:
+    ADVANCED_DETECTION_AVAILABLE = False
+    print("Advanced detection features not available")
+
+try:
+    from report_generator import ReportGenerator
+    REPORTS_AVAILABLE = True
+except ImportError:
+    REPORTS_AVAILABLE = False
+    print("Report generation not available")
+
+try:
+    import psutil
+    SYSTEM_MONITORING_AVAILABLE = True
+except ImportError:
+    SYSTEM_MONITORING_AVAILABLE = False
+    print("System monitoring not available")
+
+# --- VOICE ENGINE HELPER ---
+def speak(text):
+    def _speak():
+        try:
+            engine = pyttsx3.init()
+            engine.say(text)
+            engine.runAndWait()
+        except:
+            pass
+    threading.Thread(target=_speak).start()
+
+# Page Config
+st.set_page_config(page_title="AI Vision Sentinel Pro", layout="wide", initial_sidebar_state="expanded")
+
+# --- VIP NOIR UI CUSTOMIZATION ---
+# --- CYBER-ARCTIC ELITE LIGHT UI ---
+st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    /* Base Theme & Layout */
+    .stApp {
+        background-color: #f8fafc;
+        background-image: radial-gradient(circle at top right, #f8fafc 0%, #e2e8f0 100%);
+        color: #1e293b;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Modern Light Header */
+    .premium-header {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(15px);
+        padding: 2.5rem 1rem;
+        border-bottom: 4px solid #2563eb;
+        margin-bottom: 2rem;
+        text-align: center;
+        border-radius: 0 0 40px 40px;
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.1);
+    }
+    .premium-header h1 {
+        font-family: 'Outfit', sans-serif;
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 900;
+        font-size: 3.8rem;
+        margin: 0;
+        letter-spacing: -2px;
+        text-transform: uppercase;
+    }
+    .premium-header p {
+        color: #64748b;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 6px;
+        margin-top: 0.5rem;
+        text-transform: uppercase;
+    }
+
+    /* Soft Arctic Glass Cards */
+    .luminous-card {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(37, 99, 235, 0.1);
+        border-radius: 24px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+        backdrop-filter: blur(10px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .luminous-card:hover {
+        border-color: #2563eb;
+        box-shadow: 0 20px 50px rgba(37, 99, 235, 0.15);
+        transform: translateY(-8px);
+    }
+
+    /* Metric Bright Styling */
+    div[data-testid="stMetric"] {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        border-top: 6px solid #2563eb !important;
+        border-radius: 16px !important;
+        padding: 1.4rem !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+    }
+    div[data-testid="stMetric"] label {
+        color: #64748b !important;
+        font-size: 0.9rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1.5px !important;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: #1e293b !important;
+        font-size: 2.6rem !important;
+        font-weight: 900 !important;
+        font-family: 'Outfit', sans-serif !important;
+    }
+    
+    /* Clean Light Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #f1f5f9 !important;
+        border-right: 1px solid #e2e8f0 !important;
+    }
+    .stCheckbox label { color: #1e293b !important; font-weight: 600; }
+    
+    /* Arctic Status Alert */
+    .status-alert {
+        background: linear-gradient(90deg, #2563eb, #3b82f6);
+        color: white;
+        padding: 1rem;
+        border-radius: 16px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 30px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Table & Dataframe Light */
+    .stDataFrame {
+        border-radius: 20px !important;
+        background-color: white !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important;
+    }
+    [data-testid="stTable"] {
+        background-color: white !important;
+    }
+</style>
+
+<div class="premium-header">
+    <h1>S E N T I N E L</h1>
+    <p>Arctic Intelligence Sphere</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Initialize Session State
+if 'attendance_df' not in st.session_state:
+    st.session_state.attendance_df = pd.DataFrame(columns=["Roll No", "Date", "Time", "Status"])
+if 'detection_history' not in st.session_state:
+    st.session_state.detection_history = []
+if 'last_voice_time' not in st.session_state:
+    st.session_state.last_voice_time = 0
+if 'unknown_frames_count' not in st.session_state:
+    st.session_state.unknown_frames_count = 0
+if 'last_unknown_face' not in st.session_state:
+    st.session_state.last_unknown_face = None
+if 'unknown_face_buffer' not in st.session_state:
+    st.session_state.unknown_face_buffer = None
+if 'security_score' not in st.session_state:
+    st.session_state.security_score = 100
+
+# Advanced Features Session State
+if 'unknown_faces_list' not in st.session_state:
+    st.session_state.unknown_faces_list = []  # For multi-person enrollment
+if 'alerts_list' not in st.session_state:
+    st.session_state.alerts_list = []  # For alert center
+if 'monitoring_active' not in st.session_state:
+    st.session_state.monitoring_active = True  # For pause/resume
+if 'enrollments_today' not in st.session_state:
+    st.session_state.enrollments_today = 0  # Track new enrollments
+if 'system_start_time' not in st.session_state:
+    st.session_state.system_start_time = time.time()  # For uptime calculation
+if 'mask_compliance_data' not in st.session_state:
+    st.session_state.mask_compliance_data = {'with_mask': 0, 'without_mask': 0}
+if 'attention_scores' not in st.session_state:
+    st.session_state.attention_scores = []  # Track attention over time
+
+attendance_file = "attendance_log.csv"
+if os.path.exists(attendance_file):
+    st.session_state.attendance_df = pd.read_csv(attendance_file)
+
+# Initialize Engines
+@st.cache_resource
+def load_engines():
+    vision_eng = VisionEngine()
+    face_classifier = FaceClassifier()
+    
+    # Initialize advanced detectors if available
+    mask_det = MaskDetector() if ADVANCED_DETECTION_AVAILABLE else None
+    attention_det = AttentionDetector() if ADVANCED_DETECTION_AVAILABLE else None
+    report_gen = ReportGenerator() if REPORTS_AVAILABLE else None
+    
+    return vision_eng, face_classifier, mask_det, attention_det, report_gen
+
+vision, face_clf, mask_detector, attention_detector, report_generator = load_engines()
+
+# --- MAIN TABBED COMMAND CENTER ---
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📡 Live Sentinel", 
+    "📊 Analytics Hub", 
+    "📸 Intruder Gallery", 
+    "👤 Face Vault", 
+    "📜 System Logs"
+])
+
+# --- SIDEBAR (GLOBAL CONTROLS) ---
+with st.sidebar:
+    st.header("🎯 System Controls")
+    run_monitoring = st.checkbox("🟢 Monitoring Active", value=st.session_state.monitoring_active, key="monitoring_checkbox")
+    st.session_state.monitoring_active = run_monitoring
+    enable_voice = st.checkbox("🔊 Voice Alerts", value=True)
+    
+    # --- DASHBOARD SHORTCUTS (Phase 2A) ---
+    st.markdown("---")
+    st.subheader("⚡ Quick Actions")
+    
+    shortcut_col1, shortcut_col2 = st.columns(2)
+    with shortcut_col1:
+        if st.button("🚀 Enroll", use_container_width=True, help="Jump to enrollment section"):
+            st.toast("Scroll to Quick Enrollment section below!", icon="👇")
+        if st.button("⏸️ Pause" if st.session_state.monitoring_active else "▶️ Resume", 
+                     use_container_width=True, help="Pause/Resume monitoring"):
+            st.session_state.monitoring_active = not st.session_state.monitoring_active
+            st.rerun()
+    
+    with shortcut_col2:
+        if st.button("📸 Snapshot", use_container_width=True, help="Save current frame"):
+            st.session_state.take_snapshot = True
+            st.toast("Snapshot will be saved!", icon="📸")
+        if st.button("🚨 Alert", use_container_width=True, help="Trigger emergency alert"):
+            alert_msg = f"🚨 EMERGENCY ALERT - {datetime.datetime.now().strftime('%H:%M:%S')}"
+            st.session_state.alerts_list.append({
+                'time': datetime.datetime.now(),
+                'message': alert_msg,
+                'priority': 'HIGH',
+                'type': 'Emergency'
+            })
+            speak("Emergency alert activated")
+            st.toast(alert_msg, icon="🚨")
+    
+    st.markdown("---")
+    st.subheader("🛡️ Security Armor")
+    st.progress(st.session_state.security_score / 100.0)
+    st.metric("System Safety", f"{st.session_state.security_score}%")
+    
+    # --- SYSTEM HEALTH MONITOR (Phase 2A) ---
+    if SYSTEM_MONITORING_AVAILABLE:
+        st.markdown("---")
+        st.subheader("🏥 System Health")
+        
+        try:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('.')
+            
+            # CPU Status
+            cpu_color = "🟢" if cpu_percent < 70 else "🟡" if cpu_percent < 90 else "🔴"
+            st.metric("CPU Usage", f"{cpu_color} {cpu_percent:.1f}%")
+            
+            # Memory Status
+            mem_color = "🟢" if memory.percent < 70 else "🟡" if memory.percent < 90 else "🔴"
+            st.metric("Memory", f"{mem_color} {memory.percent:.1f}%")
+            
+            # Uptime
+            uptime_seconds = time.time() - st.session_state.system_start_time
+            uptime_str = f"{int(uptime_seconds // 3600)}h {int((uptime_seconds % 3600) // 60)}m"
+            st.metric("Uptime", uptime_str)
+            
+        except Exception as e:
+            st.caption(f"⚠️ Monitoring unavailable")
+    
+    # --- ALERT CENTER (Phase 2A) ---
+    st.markdown("---")
+    st.subheader("🔔 Recent Alerts")
+    if st.session_state.alerts_list:
+        # Show last 5 alerts
+        for alert in st.session_state.alerts_list[-5:][::-1]:
+            priority_icon = "🔴" if alert['priority'] == 'HIGH' else "🟡" if alert['priority'] == 'MEDIUM' else "🟢"
+            st.caption(f"{priority_icon} {alert['message']}")
+        
+        if st.button("Clear Alerts", use_container_width=True):
+            st.session_state.alerts_list = []
+            st.rerun()
+    else:
+        st.caption("No recent alerts")
+    
+    if st.button("🔄 Reload Vault"):
+        face_clf.load_known_faces()
+        st.success("Re-indexed!")
+
+with tab1:
+    st.markdown('<div class="status-alert">🛡️ Sentinel Pro v4: LIVE MODE - ADVANCED AI 🛡️</div>', unsafe_allow_html=True)
+    
+    # --- LIVE COUNTER DISPLAY (Phase 2A) ---
+    st.subheader("📊 Real-Time Metrics")
+    live_col1, live_col2, live_col3, live_col4, live_col5 = st.columns(5)
+    
+    with live_col1:
+        total_people_counter = st.empty()
+    with live_col2:
+        known_unknown_counter = st.empty()
+    with live_col3:
+        mask_compliance_counter = st.empty()
+    with live_col4:
+        attention_score_counter = st.empty()
+    with live_col5:
+        security_status_counter = st.empty()
+    
+    # --- TODAY'S SUMMARY CARDS (Phase 2A) ---
+    st.markdown("---")
+    st.subheader("📋 Today's Summary")
+    summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+    
+    # Calculate today's statistics
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    today_visitors = len(st.session_state.attendance_df[st.session_state.attendance_df['Date'] == today]) if not st.session_state.attendance_df.empty else 0
+    
+    with summary_col1:
+        st.metric("Total Visitors Today", today_visitors, delta=None)
+    with summary_col2:
+        st.metric("New Enrollments", st.session_state.enrollments_today, delta=None)
+    with summary_col3:
+        security_alerts = len([a for a in st.session_state.alerts_list if a.get('type') != 'Emergency'])
+        st.metric("Security Alerts", security_alerts, delta=None)
+    with summary_col4:
+        # Calculate average attention if available
+        avg_attention = int(sum(st.session_state.attention_scores[-10:]) / len(st.session_state.attention_scores[-10:])) if st.session_state.attention_scores else 0
+        st.metric("Avg Attention", f"{avg_attention}%", delta=None)
+
+    st.markdown("---")
+    feed_col, side_col = st.columns([2, 1])
+    
+    with feed_col:
+        st.subheader("📡 LIVE FEED")
+        frame_placeholder = st.empty()
+        
+        # --- MULTI-PERSON QUICK ENROLLMENT (Phase 2A) ---
+        st.markdown("---")
+        st.subheader("👥 Multi-Person Quick Enrollment")
+        st.caption("Enroll multiple people at once when 2-3 are detected")
+        
+        if st.session_state.unknown_faces_list:
+            # Display all unknown faces in a grid
+            num_faces = len(st.session_state.unknown_faces_list)
+            st.info(f"🔍 {num_faces} unknown face(s) detected")
+            
+            # Create columns for up to 3 faces
+            face_cols = st.columns(min(3, num_faces))
+            
+            for idx, face_data in enumerate(st.session_state.unknown_faces_list[:3]):  # Max 3 faces
+                with face_cols[idx % 3]:
+                    st.image(face_data['image'], width=150, caption=f"Person {idx+1}")
+                    
+                    # Individual enrollment controls
+                    name_key = f"enroll_name_{idx}"
+                    enroll_name = st.text_input(f"Name/ID #{idx+1}", key=name_key, placeholder="Enter name")
+                    
+                    if st.button(f"✅ Enroll #{idx+1}", key=f"enroll_btn_{idx}", use_container_width=True):
+                        if enroll_name:
+                            face_bgr = cv2.cvtColor(face_data['image'], cv2.COLOR_RGB2BGR)
+                            if face_clf.register_face(face_bgr, enroll_name):
+                                st.success(f"✅ {enroll_name} enrolled!")
+                                st.session_state.enrollments_today += 1
+                                # Remove this face from the list
+                                st.session_state.unknown_faces_list.pop(idx)
+                                face_clf.load_known_faces()
+                                st.toast(f"System Re-indexed: {enroll_name} added.", icon="✅")
+                                time.sleep(0.5)
+                                st.rerun()
+                        else:
+                            st.warning("Please enter a name first")
+            
+            # Batch enrollment and clear buttons
+            st.markdown("---")
+            batch_col1, batch_col2 = st.columns(2)
+            with batch_col1:
+                if st.button("🚀 Enroll All", use_container_width=True, help="Enroll all with sequential IDs"):
+                    base_name = st.text_input("Base Name (e.g., 'Person')", key="batch_base_name")
+                    if base_name:
+                        enrolled_count = 0
+                        for idx, face_data in enumerate(st.session_state.unknown_faces_list[:3]):
+                            auto_name = f"{base_name}_{idx+1}"
+                            face_bgr = cv2.cvtColor(face_data['image'], cv2.COLOR_RGB2BGR)
+                            if face_clf.register_face(face_bgr, auto_name):
+                                enrolled_count += 1
+                                st.session_state.enrollments_today += 1
+                        
+                        st.session_state.unknown_faces_list = []
+                        face_clf.load_known_faces()
+                        st.toast(f"✅ Enrolled {enrolled_count} people!", icon="🎉")
+                        time.sleep(1)
+                        st.rerun()
+            
+            with batch_col2:
+                if st.button("🗑️ Clear All", use_container_width=True, help="Clear all detected faces"):
+                    st.session_state.unknown_faces_list = []
+                    st.rerun()
+        else:
+            st.info("👁️ No unknown faces detected yet. System is monitoring...")
+            st.caption("When unknown faces are detected, they will appear here for enrollment")
+
+    with side_col:
+        st.subheader("⚡ POWER VITALS")
+        chart_placeholder = st.empty()
+        st.markdown("---")
+        st.subheader("📋 RECENT EVENTS")
+        event_placeholder = st.empty()
+
+with tab2:
+    st.header("📊 Intelligence Analytics")
+    if os.path.exists(attendance_file):
+        df = pd.read_csv(attendance_file)
+        if not df.empty:
+            df['Date'] = pd.to_datetime(df['Date'])
+            daily = df.groupby('Date').size().reset_index(name='Count')
+            fig = px.bar(daily, x='Date', y='Count', color_discrete_sequence=['#2563eb'])
+            st.plotly_chart(fig, use_container_width=True)
+            st.info("Peak Traffic Predicted: 10:30 AM - 12:00 PM")
+        else: st.info("Intelligence database empty.")
+
+with tab3:
+    st.header("📸 Intruder Gallery")
+    st.write("Sentinel v3 automatically logs unidentified detections for forensic review.")
+    
+    # --- FEATURE 1: Auto-Delete Old Threats ---
+    st.markdown("---")
+    col_auto1, col_auto2 = st.columns([2, 1])
+    with col_auto1:
+        retention_days = st.slider("🗑️ Auto-Delete Threats Older Than (Days)", 1, 30, 7, key="retention_slider")
+    with col_auto2:
+        if st.button("🧹 Clean Now", use_container_width=True):
+            if os.path.exists("screenshots"):
+                deleted_count = 0
+                current_time = time.time()
+                for img_file in os.listdir("screenshots"):
+                    if img_file.endswith(".jpg"):
+                        img_path = os.path.join("screenshots", img_file)
+                        file_age_days = (current_time - os.path.getmtime(img_path)) / 86400
+                        if file_age_days > retention_days:
+                            os.remove(img_path)
+                            deleted_count += 1
+                st.toast(f"🗑️ Deleted {deleted_count} old threat(s)!", icon="✅")
+                time.sleep(1)
+                st.rerun()
+    
+    # --- FEATURE 2: Threat Statistics Dashboard ---
+    st.markdown("---")
+    st.subheader("📊 Threat Statistics")
+    if os.path.exists("screenshots"):
+        images = sorted([os.path.join("screenshots", f) for f in os.listdir("screenshots") if f.endswith(".jpg")], reverse=True)
+        
+        if images:
+            # Calculate statistics
+            total_threats = len(images)
+            current_time = time.time()
+            today_threats = sum(1 for img in images if (current_time - os.path.getmtime(img)) < 86400)
+            week_threats = sum(1 for img in images if (current_time - os.path.getmtime(img)) < 604800)
+            
+            # Threat level
+            if total_threats <= 5:
+                threat_level = "🟢 LOW"
+                threat_color = "#10b981"
+            elif total_threats <= 15:
+                threat_level = "🟡 MEDIUM"
+                threat_color = "#f59e0b"
+            else:
+                threat_level = "🔴 HIGH"
+                threat_color = "#ef4444"
+            
+            # Display metrics
+            stat_col1, stat_col2, stat_col3, stat_col4 = st.columns(4)
+            with stat_col1:
+                st.metric("Total Threats", total_threats)
+            with stat_col2:
+                st.metric("Today", today_threats)
+            with stat_col3:
+                st.metric("This Week", week_threats)
+            with stat_col4:
+                st.markdown(f"<div style='background: {threat_color}; color: white; padding: 1rem; border-radius: 12px; text-align: center; font-weight: bold;'>{threat_level}</div>", unsafe_allow_html=True)
+            
+            # Time-series chart
+            threat_times = []
+            for img in images:
+                img_time = datetime.datetime.fromtimestamp(os.path.getmtime(img))
+                threat_times.append({"Date": img_time.strftime("%Y-%m-%d"), "Hour": img_time.hour, "Count": 1})
+            
+            if threat_times:
+                threat_df = pd.DataFrame(threat_times)
+                daily_threats = threat_df.groupby("Date").size().reset_index(name="Threats")
+                fig_threats = px.line(daily_threats, x="Date", y="Threats", 
+                                     title="Threat Detection Timeline",
+                                     color_discrete_sequence=['#ef4444'])
+                fig_threats.update_layout(height=250, margin=dict(l=0,r=0,b=0,t=40))
+                st.plotly_chart(fig_threats, use_container_width=True)
+        else:
+            st.info("No security threats detected recently.")
+    
+    # --- FEATURE 3: Quick Enroll from Gallery ---
+    st.markdown("---")
+    st.subheader("🚀 Quick Enroll from Gallery")
+    st.write("Select intruder images to enroll if they were misidentified:")
+    
+    if os.path.exists("screenshots"):
+        images = sorted([os.path.join("screenshots", f) for f in os.listdir("screenshots") if f.endswith(".jpg")], reverse=True)
+        
+        if images:
+            # Initialize session state for selections
+            if 'selected_intruders' not in st.session_state:
+                st.session_state.selected_intruders = {}
+            
+            # Display images with checkboxes
+            cols = st.columns(3)
+            for idx, img_path in enumerate(images[:9]):
+                with cols[idx % 3]:
+                    st.image(img_path, caption=os.path.basename(img_path))
+                    img_key = os.path.basename(img_path)
+                    
+                    # Checkbox and name input
+                    if st.checkbox(f"Select", key=f"chk_{img_key}"):
+                        name_input = st.text_input(f"Name/ID", key=f"name_{img_key}", placeholder="Enter ID")
+                        if name_input:
+                            st.session_state.selected_intruders[img_path] = name_input
+                    else:
+                        # Remove from selections if unchecked
+                        if img_path in st.session_state.selected_intruders:
+                            del st.session_state.selected_intruders[img_path]
+            
+            # Enroll selected button
+            if st.session_state.selected_intruders:
+                st.markdown("---")
+                if st.button(f"✅ Enroll {len(st.session_state.selected_intruders)} Selected", use_container_width=True):
+                    enrolled_count = 0
+                    for img_path, name in st.session_state.selected_intruders.items():
+                        try:
+                            # Read image and register
+                            img = cv2.imread(img_path)
+                            if img is not None:
+                                # Detect face in the image
+                                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                                faces = face_clf.face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(80, 80))
+                                
+                                if len(faces) > 0:
+                                    # Take the first detected face
+                                    (x, y, w, h) = faces[0]
+                                    face_roi = img[y:y+h, x:x+w]
+                                    
+                                    # Register the face
+                                    if face_clf.register_face(face_roi, name):
+                                        # Remove from screenshots after successful enrollment
+                                        os.remove(img_path)
+                                        enrolled_count += 1
+                        except Exception as e:
+                            st.error(f"Error enrolling {name}: {e}")
+                    
+                    st.session_state.selected_intruders = {}
+                    st.toast(f"✅ Successfully enrolled {enrolled_count} person(s)!", icon="🎉")
+                    time.sleep(1)
+                    st.rerun()
+        else:
+            st.info("No intruder images available for enrollment.")
+
+with tab4:
+    st.header("👤 Face Vault")
+    v_col1, v_col2 = st.columns([1, 1])
+    with v_col1:
+        st.subheader("Manual Registration")
+        if st.session_state.last_unknown_face is not None:
+            st.image(st.session_state.last_unknown_face, width=150)
+            new_name = st.text_input("Assign ID/Name", key="vault_name_reg")
+            if st.button("✅ Add to Database"):
+                if new_name:
+                    face_bgr = cv2.cvtColor(st.session_state.last_unknown_face, cv2.COLOR_RGB2BGR)
+                    if face_clf.register_face(face_bgr, new_name):
+                        st.success("Identity Locked!")
+                        st.session_state.last_unknown_face = None
+                        time.sleep(1); st.rerun()
+
+    with v_col2:
+        st.subheader("System Registry")
+        known_faces_list = [os.path.splitext(f)[0] for f in os.listdir("known_faces") if f.endswith(".jpg")]
+        to_delete = st.selectbox("Select Access to Revoke", ["---"] + known_faces_list)
+        if st.button("❌ Remove Identity"):
+            if to_delete != "---":
+                os.remove(os.path.join("known_faces", f"{to_delete}.jpg"))
+                st.success("Target Purged!"); st.rerun()
+
+with tab5:
+    st.header("📜 Forensic Logs")
+    search_date_sys = st.date_input("Filter System Log", datetime.date.today())
+    if os.path.exists(attendance_file):
+        history_df = pd.read_csv(attendance_file)
+        history_df['Date'] = pd.to_datetime(history_df['Date']).dt.date
+        filtered = history_df[history_df['Date'] == search_date_sys]
+        st.dataframe(filtered.sort_values(by="Time", ascending=False))
+
+# --- PROCESSING LOOP ---
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+frame_count = 0
+
+while run_monitoring:
+    ret, frame = cap.read()
+    if not ret: break
+    
+    frame_count += 1
+    display_frame = frame.copy()
+    
+    if frame_count % 3 == 0:
+        try:
+            # 1. AI Vision Core (v3)
+            res_frame, detections, status, counts, mood = vision.process_frame(frame.copy())
+            face_locs, face_names = face_clf.classify_face(frame)
+            current_time = time.time()
+            
+            # 2. Update Live Counter Display (Phase 2A)
+            # Count people in frame
+            total_people = len(face_locs)
+            known_count = sum(1 for name in face_names if name != "Unknown")
+            unknown_count = total_people - known_count
+            
+            # Update counters
+            total_people_counter.metric("👥 Total People", total_people)
+            known_unknown_counter.metric("🔍 Known | Unknown", f"{known_count} | {unknown_count}")
+            
+            # Mask compliance (placeholder for Phase 2B)
+            mask_compliance_counter.metric("😷 Mask Status", "N/A")
+            
+            # Attention score (placeholder for Phase 2B)
+            attention_score_counter.metric("👁️ Attention", "N/A")
+            
+            # Security status
+            threat_level = "🟢 LOW" if unknown_count == 0 else "🟡 MEDIUM" if unknown_count <= 2 else "🔴 HIGH"
+            security_status_counter.metric("🛡️ Security", threat_level)
+            
+            # 3. Security Armor Logic (Reactive Scoring)
+            has_unknown = any(name == "Unknown" for name in face_names)
+            if has_unknown:
+                st.session_state.unknown_frames_count += 1
+                if st.session_state.security_score > 10: st.session_state.security_score -= 1
+            else:
+                st.session_state.unknown_frames_count = 0
+                if st.session_state.security_score < 100: st.session_state.security_score += 0.5
+
+            # 4. Pro-Grade Overlays
+            for (top, right, bottom, left), name in zip(face_locs, face_names):
+                label = "UNIDENTIFIED" if name == "Unknown" else f"ID: {name}"
+                color = (0, 0, 255) if name == "Unknown" else (37, 99, 235) # Electric Blue
+                cv2.rectangle(display_frame, (left, top), (right, bottom), color, 2)
+                cv2.putText(display_frame, f"{label} | {mood}", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                
+                if name == "Unknown":
+                    r_roi = frame[top:bottom, left:right]
+                    if r_roi.size > 0:
+                        unknown_face_rgb = cv2.cvtColor(r_roi, cv2.COLOR_BGR2RGB)
+                        
+                        # Add to multi-person list (max 5 faces)
+                        if len(st.session_state.unknown_faces_list) < 5:
+                            # Check if this face is already in the list (avoid duplicates)
+                            face_exists = False
+                            for existing_face in st.session_state.unknown_faces_list:
+                                if existing_face['image'].shape == unknown_face_rgb.shape:
+                                    # Simple duplicate check based on shape
+                                    face_exists = True
+                                    break
+                            
+                            if not face_exists:
+                                st.session_state.unknown_faces_list.append({
+                                    'image': unknown_face_rgb,
+                                    'timestamp': current_time,
+                                    'location': (top, right, bottom, left)
+                                })
+                
+                # 5. Security Snapshot (Autosave to Gallery)
+                if name == "Unknown" and st.session_state.unknown_frames_count >= 12:
+                    if not os.path.exists("screenshots"): os.makedirs("screenshots")
+                    ss_path = f"screenshots/threat_{int(current_time)}.jpg"
+                    cv2.imwrite(ss_path, frame)
+                    st.session_state.unknown_frames_count = 0
+                    st.toast(f"🚨 SECURITY THREAT: Identification Failed. Snapshot Logged.", icon="⚠️")
+                    
+                # Voice & Logging
+                if enable_voice and (current_time - st.session_state.last_voice_time > 12):
+                    if name != "Unknown": 
+                        speak(f"Assalam o alaikum {name}.")
+                        st.session_state.last_voice_time = current_time
+                    elif st.session_state.unknown_frames_count >= 10:
+                        speak("Unknown person detected.")
+                        st.session_state.last_voice_time = current_time
+
+                    if name != "Unknown":
+                        now_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                        now_time = datetime.datetime.now().strftime("%H:%M:%S")
+                        
+                        if os.path.exists(attendance_file):
+                            current_logs = pd.read_csv(attendance_file)
+                        else:
+                            current_logs = pd.DataFrame(columns=["Roll No", "Date", "Time", "Status"])
+
+                        is_logged = not current_logs[
+                            (current_logs['Roll No'] == name) & (current_logs['Date'] == now_date)
+                        ].empty
+                        
+                        if not is_logged:
+                            new_row = pd.DataFrame([{"Roll No": name, "Date": now_date, "Time": now_time, "Status": "Present"}])
+                            current_logs = pd.concat([current_logs, new_row], ignore_index=True)
+                            current_logs.to_csv(attendance_file, index=False)
+
+            # 7. Update Dashboard Display Components
+            frame_placeholder.image(cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB))
+
+            # 8. Update Vitals Chart (Reactive Pulse)
+            st.session_state.detection_history.append([datetime.datetime.now().strftime("%H:%M:%S"), counts['total']])
+            if len(st.session_state.detection_history) > 15: st.session_state.detection_history.pop(0)
+            hist_df = pd.DataFrame(st.session_state.detection_history, columns=["Time", "Count"])
+            fig = px.line(hist_df, x="Time", y="Count", color_discrete_sequence=['#2563eb'])
+            fig.update_layout(height=160, margin=dict(l=0,r=0,b=0,t=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#1e293b")
+            chart_placeholder.plotly_chart(fig, key=f"pulse_chart_{frame_count}")
+            
+            if os.path.exists(attendance_file):
+                event_placeholder.table(pd.read_csv(attendance_file).tail(5))
+                
+        except Exception as e:
+            st.error(f"Loop error: {e}")
+            break
+    time.sleep(0.01)
+
+cap.release()
+
+# --- FOOTER ---
+st.markdown("""
+<style>
+    .footer {
+        text-align: center;
+        padding: 50px;
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+</style>
+<div class="footer" style="color: #64748b; font-weight: 600;">
+    Developed by AntiGravity • Cyber-Arctic Elite Sentinel 2025
+</div>
+""", unsafe_allow_html=True)

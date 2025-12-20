@@ -1,0 +1,219 @@
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+import pandas as pd
+import datetime
+import os
+
+class ReportGenerator:
+    """Generate PDF reports for attendance and security"""
+    
+    def __init__(self):
+        self.styles = getSampleStyleSheet()
+        self.title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=self.styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#2563eb'),
+            spaceAfter=30,
+            alignment=TA_CENTER
+        )
+        self.heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=self.styles['Heading2'],
+            fontSize=14,
+            textColor=colors.HexColor('#1e293b'),
+            spaceAfter=12,
+            spaceBefore=12
+        )
+    
+    def generate_attendance_report(self, attendance_df, output_path="reports/attendance_report.pdf"):
+        """Generate daily attendance report"""
+        
+        # Create reports directory if it doesn't exist
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        # Create PDF
+        doc = SimpleDocTemplate(output_path, pagesize=letter)
+        story = []
+        
+        # Title
+        title = Paragraph("AI Vision Sentinel - Attendance Report", self.title_style)
+        story.append(title)
+        story.append(Spacer(1, 0.2*inch))
+        
+        # Report metadata
+        report_date = datetime.datetime.now().strftime("%B %d, %Y %I:%M %p")
+        meta = Paragraph(f"<b>Generated:</b> {report_date}", self.styles['Normal'])
+        story.append(meta)
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Summary statistics
+        if not attendance_df.empty:
+            total_entries = len(attendance_df)
+            unique_people = attendance_df['Roll No'].nunique()
+            today = datetime.datetime.now().strftime("%Y-%m-%d")
+            today_entries = len(attendance_df[attendance_df['Date'] == today])
+            
+            summary_heading = Paragraph("Summary Statistics", self.heading_style)
+            story.append(summary_heading)
+            
+            summary_data = [
+                ['Metric', 'Value'],
+                ['Total Entries', str(total_entries)],
+                ['Unique Individuals', str(unique_people)],
+                ['Today\'s Entries', str(today_entries)]
+            ]
+            
+            summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563eb')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            story.append(summary_table)
+            story.append(Spacer(1, 0.3*inch))
+            
+            # Attendance details
+            details_heading = Paragraph("Attendance Details", self.heading_style)
+            story.append(details_heading)
+            
+            # Prepare table data
+            table_data = [['Roll No', 'Date', 'Time', 'Status']]
+            for _, row in attendance_df.tail(50).iterrows():  # Last 50 entries
+                table_data.append([
+                    str(row['Roll No']),
+                    str(row['Date']),
+                    str(row['Time']),
+                    str(row['Status'])
+                ])
+            
+            details_table = Table(table_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+            details_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563eb')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
+            ]))
+            story.append(details_table)
+        else:
+            no_data = Paragraph("No attendance data available.", self.styles['Normal'])
+            story.append(no_data)
+        
+        # Footer
+        story.append(Spacer(1, 0.5*inch))
+        footer = Paragraph(
+            "<i>Generated by AI Vision Sentinel Pro - Arctic Intelligence Sphere</i>",
+            self.styles['Normal']
+        )
+        story.append(footer)
+        
+        # Build PDF
+        doc.build(story)
+        return output_path
+    
+    def generate_security_report(self, screenshots_dir="screenshots", output_path="reports/security_report.pdf"):
+        """Generate security incidents report"""
+        
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        doc = SimpleDocTemplate(output_path, pagesize=letter)
+        story = []
+        
+        # Title
+        title = Paragraph("AI Vision Sentinel - Security Report", self.title_style)
+        story.append(title)
+        story.append(Spacer(1, 0.2*inch))
+        
+        # Report metadata
+        report_date = datetime.datetime.now().strftime("%B %d, %Y %I:%M %p")
+        meta = Paragraph(f"<b>Generated:</b> {report_date}", self.styles['Normal'])
+        story.append(meta)
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Count threats
+        if os.path.exists(screenshots_dir):
+            threats = [f for f in os.listdir(screenshots_dir) if f.endswith('.jpg')]
+            threat_count = len(threats)
+            
+            summary_heading = Paragraph("Security Summary", self.heading_style)
+            story.append(summary_heading)
+            
+            summary_data = [
+                ['Metric', 'Value'],
+                ['Total Threats Detected', str(threat_count)],
+                ['Report Period', 'All Time'],
+                ['Status', 'Active Monitoring']
+            ]
+            
+            summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ef4444')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            story.append(summary_table)
+            story.append(Spacer(1, 0.3*inch))
+            
+            # Threat details
+            if threat_count > 0:
+                details_heading = Paragraph("Threat Incidents", self.heading_style)
+                story.append(details_heading)
+                
+                table_data = [['Timestamp', 'Filename', 'Status']]
+                for threat_file in sorted(threats, reverse=True)[:20]:  # Last 20 threats
+                    # Extract timestamp from filename
+                    timestamp_str = threat_file.replace('threat_', '').replace('.jpg', '')
+                    try:
+                        timestamp = datetime.datetime.fromtimestamp(int(timestamp_str))
+                        formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    except:
+                        formatted_time = "Unknown"
+                    
+                    table_data.append([formatted_time, threat_file, 'Logged'])
+                
+                details_table = Table(table_data, colWidths=[2*inch, 2.5*inch, 1.5*inch])
+                details_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ef4444')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
+                ]))
+                story.append(details_table)
+        else:
+            no_data = Paragraph("No security threats detected.", self.styles['Normal'])
+            story.append(no_data)
+        
+        # Footer
+        story.append(Spacer(1, 0.5*inch))
+        footer = Paragraph(
+            "<i>Generated by AI Vision Sentinel Pro - Arctic Intelligence Sphere</i>",
+            self.styles['Normal']
+        )
+        story.append(footer)
+        
+        doc.build(story)
+        return output_path
