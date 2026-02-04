@@ -54,124 +54,161 @@ def speak(text):
 st.set_page_config(page_title="AI Vision Sentinel Pro", layout="wide", initial_sidebar_state="expanded")
 
 # --- VIP NOIR UI CUSTOMIZATION ---
-# --- CYBER-ARCTIC ELITE LIGHT UI ---
+# --- MIDNIGHT ONYX UI REDESIGN ---
 st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-    /* Base Theme & Layout */
+    /* Global Styles */
     .stApp {
-        background-color: #f8fafc;
-        background-image: radial-gradient(circle at top right, #f8fafc 0%, #e2e8f0 100%);
-        color: #1e293b;
+        background-color: #020617;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.05) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.05) 0px, transparent 50%);
+        color: #f8fafc;
         font-family: 'Inter', sans-serif;
     }
-    
-    /* Modern Light Header */
+
+    /* Cyber Header */
     .premium-header {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(15px);
-        padding: 2.5rem 1rem;
-        border-bottom: 4px solid #2563eb;
-        margin-bottom: 2rem;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(20px);
+        padding: 3rem 1rem;
+        border-bottom: 2px solid rgba(56, 189, 248, 0.3);
+        margin-bottom: 2.5rem;
         text-align: center;
-        border-radius: 0 0 40px 40px;
-        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.1);
+        border-radius: 0 0 50px 50px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     }
     .premium-header h1 {
-        font-family: 'Outfit', sans-serif;
-        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        font-family: 'Orbitron', sans-serif;
+        background: linear-gradient(135deg, #38bdf8 0%, #a855f7 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 900;
-        font-size: 3.8rem;
+        font-size: 4.2rem;
         margin: 0;
-        letter-spacing: -2px;
+        letter-spacing: 8px;
         text-transform: uppercase;
+        filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.4));
     }
     .premium-header p {
-        color: #64748b;
-        font-size: 1rem;
-        font-weight: 600;
-        letter-spacing: 6px;
-        margin-top: 0.5rem;
+        color: #94a3b8;
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 12px;
+        margin-top: 0.8rem;
         text-transform: uppercase;
+        opacity: 0.8;
     }
 
-    /* Soft Arctic Glass Cards */
+    /* Glassmorphism Cards */
     .luminous-card {
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid rgba(37, 99, 235, 0.1);
-        border-radius: 24px;
-        padding: 1.5rem;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-        backdrop-filter: blur(10px);
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 28px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .luminous-card:hover {
-        border-color: #2563eb;
-        box-shadow: 0 20px 50px rgba(37, 99, 235, 0.15);
-        transform: translateY(-8px);
+        border-color: rgba(56, 189, 248, 0.5);
+        background: rgba(30, 41, 59, 0.6);
+        transform: translateY(-5px);
+        box-shadow: 0 12px 48px 0 rgba(56, 189, 248, 0.15);
     }
 
-    /* Metric Bright Styling */
+    /* Metric HUD Styling */
     div[data-testid="stMetric"] {
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
-        border-top: 6px solid #2563eb !important;
-        border-radius: 16px !important;
-        padding: 1.4rem !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+        background: rgba(15, 23, 42, 0.6) !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+        border-left: 5px solid #38bdf8 !important;
+        border-radius: 20px !important;
+        padding: 1.5rem !important;
+        backdrop-filter: blur(10px) !important;
     }
     div[data-testid="stMetric"] label {
-        color: #64748b !important;
-        font-size: 0.9rem !important;
-        font-weight: 700 !important;
+        color: #38bdf8 !important;
+        font-size: 0.85rem !important;
+        font-weight: 800 !important;
         text-transform: uppercase !important;
-        letter-spacing: 1.5px !important;
+        letter-spacing: 2px !important;
+        font-family: 'JetBrains Mono', monospace !important;
     }
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: #1e293b !important;
-        font-size: 2.6rem !important;
+        color: #fff !important;
+        font-size: 2.8rem !important;
         font-weight: 900 !important;
-        font-family: 'Outfit', sans-serif !important;
+        font-family: 'Orbitron', sans-serif !important;
+        text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
     }
     
-    /* Clean Light Sidebar */
+    /* Global Control Theme */
     section[data-testid="stSidebar"] {
-        background-color: #f1f5f9 !important;
-        border-right: 1px solid #e2e8f0 !important;
+        background-color: #0f172a !important;
+        border-right: 1px solid rgba(56, 189, 248, 0.1) !important;
     }
-    .stCheckbox label { color: #1e293b !important; font-weight: 600; }
+    .stCheckbox label { color: #cbd5e1 !important; font-weight: 600; }
     
-    /* Arctic Status Alert */
+    /* Neon Status Alertbar */
     .status-alert {
-        background: linear-gradient(90deg, #2563eb, #3b82f6);
-        color: white;
-        padding: 1rem;
-        border-radius: 16px;
-        font-weight: 900;
+        background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid #38bdf8;
+        color: #38bdf8;
+        padding: 1.2rem;
+        border-radius: 20px;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 3px;
+        letter-spacing: 4px;
         text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 8px 30px rgba(37, 99, 235, 0.3);
+        margin-bottom: 2.5rem;
+        box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.1), 0 0 20px rgba(56, 189, 248, 0.1);
+        animation: pulse-glow 2s infinite alternate;
+    }
+    @keyframes pulse-glow {
+        from { box-shadow: 0 0 10px rgba(56, 189, 248, 0.1); }
+        to { box-shadow: 0 0 25px rgba(56, 189, 248, 0.3); }
     }
 
-    /* Table & Dataframe Light */
-    .stDataFrame {
-        border-radius: 20px !important;
-        background-color: white !important;
-        border: 1px solid #e2e8f0 !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important;
+    /* Tab Styling Overrides */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: transparent !important;
+        gap: 12px;
     }
-    [data-testid="stTable"] {
-        background-color: white !important;
+    .stTabs [data-baseweb="tab"] {
+        height: 50px !important;
+        white-space: pre-wrap !important;
+        background-color: rgba(30, 41, 59, 0.5) !important;
+        border-radius: 12px 12px 0 0 !important;
+        color: #94a3b8 !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        font-weight: 700 !important;
+        padding: 0 20px !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(0deg, rgba(56, 189, 248, 0.2) 0%, rgba(30, 41, 59, 0.8) 100%) !important;
+        border-top: 3px solid #38bdf8 !important;
+        color: #38bdf8 !important;
+    }
+
+    /* Modern Table/Dataframe */
+    .stDataFrame, [data-testid="stTable"] {
+        background-color: rgba(15, 23, 42, 0.5) !important;
+        border: 1px solid rgba(56, 189, 248, 0.1) !important;
+        border-radius: 16px !important;
+    }
+
+    /* Progress Bar */
+    .stProgress > div > div > div > div {
+        background-image: linear-gradient(to right, #38bdf8, #a855f7) !important;
     }
 </style>
 
 <div class="premium-header">
     <h1>S E N T I N E L</h1>
-    <p>Arctic Intelligence Sphere</p>
+    <p>Midnight Intelligence Core • v4.2</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -623,7 +660,52 @@ with tab5:
         history_df = pd.read_csv(attendance_file)
         history_df['Date'] = pd.to_datetime(history_df['Date']).dt.date
         filtered = history_df[history_df['Date'] == search_date_sys]
-        st.dataframe(filtered.sort_values(by="Time", ascending=False))
+        st.dataframe(filtered.sort_values(by="Time", ascending=False), use_container_width=True)
+
+    # --- REPORT CENTER ---
+    st.markdown("---")
+    st.subheader("📄 Report Center")
+    rep_col1, rep_col2 = st.columns(2)
+    
+    with rep_col1:
+        if st.button("📥 Generate Attendance PDF", use_container_width=True):
+            if REPORTS_AVAILABLE:
+                report_path = report_generator.generate_attendance_report(st.session_state.attendance_df)
+                st.success(f"Report Generated: {report_path}")
+                try:
+                    with open(report_path, "rb") as pdf_file:
+                        pdf_bytes = pdf_file.read()
+                        st.download_button(
+                            label="⬇️ Download Attendance Report",
+                            data=pdf_bytes,
+                            file_name="attendance_report.pdf",
+                            mime="application/pdf",
+                            key="dl_att_pdf"
+                        )
+                except Exception as e:
+                    st.error(f"Error preparing download: {e}")
+            else:
+                st.error("Report Generator module not loaded.")
+
+    with rep_col2:
+        if st.button("🛡️ Generate Security Brief", use_container_width=True):
+            if REPORTS_AVAILABLE:
+                report_path = report_generator.generate_security_report()
+                st.success(f"Brief Generated: {report_path}")
+                try:
+                    with open(report_path, "rb") as pdf_file:
+                        pdf_bytes = pdf_file.read()
+                        st.download_button(
+                            label="⬇️ Download Security Brief",
+                            data=pdf_bytes,
+                            file_name="security_brief.pdf",
+                            mime="application/pdf",
+                            key="dl_sec_pdf"
+                        )
+                except Exception as e:
+                    st.error(f"Error preparing download: {e}")
+            else:
+                st.error("Report Generator module not loaded.")
 
 # --- PROCESSING LOOP ---
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -736,7 +818,68 @@ while run_monitoring:
                             current_logs = pd.concat([current_logs, new_row], ignore_index=True)
                             current_logs.to_csv(attendance_file, index=False)
 
-            # 7. Update Dashboard Display Components
+            # 7. Update Dashboard Display Components (with Advanced Detection Overlays)
+            # --- ADVANCED DETECTION LOGIC ---
+            if ADVANCED_DETECTION_AVAILABLE:
+                # Initialize variables for this frame
+                frame_attention_scores = []
+                mask_count = 0
+                total_faces_checked = 0
+                
+                # Check each detected face
+                for (top, right, bottom, left), name in zip(face_locs, face_names):
+                    face_loc = (top, right, bottom, left)
+                    
+                    # 1. Mask Detection
+                    if mask_detector:
+                        has_mask, mask_conf = mask_detector.detect_mask(frame, face_loc)
+                        if has_mask:
+                            mask_count += 1
+                            # Draw mask label
+                            cv2.putText(display_frame, f"MASK {int(mask_conf*100)}%", (left, bottom + 20),
+                                      cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                        else:
+                            # Draw no mask warning if needed
+                             cv2.putText(display_frame, "NO MASK", (left, bottom + 20),
+                                      cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
+                    # 2. Attention Detection
+                    if attention_detector:
+                        is_attentive, att_score, att_status = attention_detector.detect_attention(frame, face_loc)
+                        if is_attentive:
+                            frame_attention_scores.append(att_score * 100)
+                        
+                        # Draw attention status
+                        att_color = (0, 255, 0) if is_attentive else (0, 165, 255) # Green or Orange
+                        cv2.putText(display_frame, f"{att_status}", (left, top - 25),
+                                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, att_color, 2)
+                    
+                    total_faces_checked += 1
+
+                # Update Session State Stats
+                if total_faces_checked > 0:
+                    # Mask Stats
+                    compliance_rate = int((mask_count / total_faces_checked) * 100)
+                    mask_status_str = f"{compliance_rate}% Compliant"
+                    mask_color = "normal" if compliance_rate > 50 else "off"
+                    mask_compliance_counter.metric("😷 Mask Status", mask_status_str)
+                    
+                    # Attention Stats
+                    if frame_attention_scores:
+                        avg_frame_att = sum(frame_attention_scores) / len(frame_attention_scores)
+                        st.session_state.attention_scores.append(avg_frame_att)
+                        # Keep last 100 scores for rolling average
+                        if len(st.session_state.attention_scores) > 100:
+                            st.session_state.attention_scores.pop(0)
+                        
+                        overall_avg = int(sum(st.session_state.attention_scores) / len(st.session_state.attention_scores))
+                        attention_score_counter.metric("👁️ Avg Attention", f"{overall_avg}%")
+                    else:
+                        attention_score_counter.metric("👁️ Avg Attention", "Wait...")
+                else:
+                     mask_compliance_counter.metric("😷 Mask Status", "No Faces")
+                     attention_score_counter.metric("👁️ Avg Attention", "Standby")
+
             frame_placeholder.image(cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB))
 
             # 8. Update Vitals Chart (Reactive Pulse)
@@ -762,12 +905,17 @@ st.markdown("""
 <style>
     .footer {
         text-align: center;
-        padding: 50px;
-        color: #94a3b8;
-        font-size: 0.9rem;
+        padding: 60px 0;
+        color: #64748b;
+        font-size: 0.85rem;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        border-top: 1px solid rgba(56, 189, 248, 0.1);
+        margin-top: 50px;
     }
 </style>
-<div class="footer" style="color: #64748b; font-weight: 600;">
-    Developed by AntiGravity • Cyber-Arctic Elite Sentinel 2025
+<div class="footer">
+    System Operational • Sentinel Midnight Core • v4.2 © 2025
 </div>
 """, unsafe_allow_html=True)
