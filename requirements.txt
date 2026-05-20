@@ -1,21 +1,14 @@
-# Required for core functionality
-streamlit
-opencv-python
-ultralytics
-pandas
-plotly-express
-pyttsx3
-numpy
-torch
-torchvision
-torchaudio
-
-# Note: MediaPipe has limited support on Python 3.14 (experimental)
-# The code handles its absence gracefully using OpenCV fallbacks.
-mediapipe
-
-# Advanced Features Dependencies
-reportlab>=4.0.0  # For PDF report generation
-psutil>=5.9.0     # For system health monitoring
-scipy>=1.11.0     # For advanced calculations
-pillow>=10.0.0    # For image processing
+streamlit>=1.30.0
+opencv-python-headless>=4.8.0
+ultralytics>=8.0.0
+pandas>=2.0.0
+plotly-express>=0.4.1
+numpy>=1.24.0
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+mediapipe>=0.10.0
+reportlab>=4.0.0
+psutil>=5.9.0
+scipy>=1.11.0
+pillow>=10.0.0

@@ -10,8 +10,8 @@ import numpy as np
 
 class VisionEngine:
     def __init__(self):
-        # Load YOLOv8 model (Nano version for speed)
-        self.model = YOLO('yolov8n.pt') 
+        # Load YOLOv8 model (auto-downloads if not cached)
+        self.model = YOLO('yolov8n.pt')
         
         # Initialize MediaPipe Face Mesh for drowsiness/mood
         self.mediapipe_available = False
